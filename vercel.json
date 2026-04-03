@@ -1,6 +1,6 @@
 {
-  "rewrites": [
-    { "source": "/api/evaluate", "destination": "/api/evaluate" },
-    { "source": "/(.*)", "destination": "/public/$1" }
+  "routes": [
+    { "src": "/api/evaluate", "dest": "/api/evaluate.js" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
