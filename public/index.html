@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICP Lead Evaluation Agent</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f6fa; color: #1a1a2e; min-height: 100vh; }
+
+  .app-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: white; padding: 24px 32px;
+    display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .app-header .logo {
+    width: 48px; height: 48px; background: #e94560;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .app-header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+  .app-header p { font-size: 13px; opacity: 0.65; margin-top: 2px; }
+
+  .main { display: grid; grid-template-columns: 380px 1fr; gap: 0; min-height: calc(100vh - 84px); }
+
+  .left-panel { background: white; border-right: 1px solid #e5e9f0; padding: 24px; overflow-y: auto; }
+  .right-panel { padding: 24px; overflow-y: auto; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.8px; color: #8892a4; margin-bottom: 12px;
+  }
+
+  .input-group { margin-bottom: 14px; }
+  .input-group label { display: block; font-size: 13px; font-weight: 500; color: #444; margin-bottom: 5px; }
+  .input-group input {
+    width: 100%; padding: 9px 12px; border: 1.5px solid #dce3ef;
+    border-radius: 8px; font-size: 14px; color: #1a1a2e; background: #f9fafb;
+    outline: none; transition: border-color 0.2s;
+  }
+  .input-group input:focus { border-color: #0f3460; background: white; }
+
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 20px; }
+  .mode-btn {
+    flex: 1; padding: 8px; border: 1.5px solid #dce3ef; border-radius: 8px;
+    background: white; font-size: 13px; font-weight: 500; cursor: pointer;
+    color: #666; transition: all 0.2s;
+  }
+  .mode-btn.active { background: #0f3460; color: white; border-color: #0f3460; }
+
+  .evaluate-btn {
+    width: 100%; padding: 12px; background: #e94560; border: none;
+    border-radius: 10px; color: white; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .evaluate-btn:hover { background: #c73652; }
+  .evaluate-btn:active { transform: scale(0.98); }
+  .evaluate-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+
+  .example-btns { margin-top: 20px; }
+  .example-btn {
+    width: 100%; padding: 8px 12px; margin-bottom: 6px;
+    background: #f4f6fa; border: 1px solid #dce3ef; border-radius: 8px;
+    font-size: 12px; color: #555; cursor: pointer; text-align: left;
+    transition: background 0.15s;
+  }
+  .example-btn:hover { background: #eaecf5; }
+
+  .placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 300px; color: #aab; text-align: center; gap: 12px;
+  }
+
+  .result-card {
+    background: white; border-radius: 14px; border: 1px solid #e5e9f0;
+    overflow: hidden; margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+
+  .score-banner { padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .score-banner.high { background: linear-gradient(135deg, #0f5132, #198754); color: white; }
+  .score-banner.medium { background: linear-gradient(135deg, #7c4a00, #fd7e14); color: white; }
+  .score-banner.not-fit { background: linear-gradient(135deg, #6b1a1a, #dc3545); color: white; }
+
+  .score-label { font-size: 24px; font-weight: 700; }
+  .score-sub { font-size: 13px; opacity: 0.8; margin-top: 2px; }
+  .score-rep { text-align: right; }
+  .score-rep .rep-label { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; }
+  .score-rep .rep-name { font-size: 16px; font-weight: 600; }
+
+  .card-body { padding: 20px 24px; }
+
+  .criteria-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .criteria-item {
+    padding: 12px; border-radius: 9px; border: 1px solid;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .criteria-item.pass { background: #f0faf4; border-color: #b7e4c7; }
+  .criteria-item.fail { background: #fff5f5; border-color: #ffc5c5; }
+  .criteria-item.unknown { background: #fffbf0; border-color: #ffe08a; }
+  .criteria-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .criteria-title { font-size: 12px; font-weight: 600; color: #444; }
+  .criteria-detail { font-size: 11px; color: #666; margin-top: 2px; line-height: 1.4; }
+
+  .enriched-section { margin-bottom: 20px; }
+  .enriched-badge {
+    display: inline-block; padding: 2px 8px; background: #e3edff; color: #2d5be3;
+    border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 10px;
+  }
+  .enriched-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .enriched-table td { padding: 6px 0; vertical-align: top; }
+  .enriched-table td:first-child { color: #8892a4; width: 140px; font-weight: 500; }
+
+  .reasoning-box {
+    background: #f8faff; border-left: 3px solid #0f3460;
+    padding: 14px 16px; border-radius: 0 8px 8px 0;
+    font-size: 13px; line-height: 1.65; color: #333; margin-bottom: 16px;
+  }
+
+  .rec-box {
+    padding: 13px 16px; border-radius: 9px;
+    font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px;
+  }
+  .rec-box.high { background: #d1fae5; color: #065f46; }
+  .rec-box.medium { background: #fff3cd; color: #856404; }
+  .rec-box.not-fit { background: #fde8e8; color: #9b1c1c; }
+
+  .loading-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 280px; gap: 16px;
+  }
+  .spinner {
+    width: 40px; height: 40px; border: 3px solid #e5e9f0;
+    border-top-color: #0f3460; border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 14px; color: #666; }
+
+  .error-box {
+    background: #fde8e8; border: 1px solid #ffc5c5; border-radius: 10px;
+    padding: 16px; color: #9b1c1c; font-size: 13px; line-height: 1.6;
+  }
+
+  .divider { height: 1px; background: #f0f2f8; margin: 16px 0; }
+
+  @media (max-width: 860px) {
+    .main { grid-template-columns: 1fr; }
+    .left-panel { border-right: none; border-bottom: 1px solid #e5e9f0; }
+    .criteria-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="logo">ICP</div>
+  <div>
+    <h1>AI Sales Lead Evaluator</h1>
+    <p>Powered by Claude · Enriches, scores &amp; routes leads automatically</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="section-label">Input Mode</div>
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-full" onclick="setMode('full')">Full Data</button>
+      <button class="mode-btn" id="btn-company" onclick="setMode('company')">Company Only</button>
+    </div>
+
+    <div id="full-form">
+      <div class="section-label">Lead Details</div>
+      <div class="input-group">
+        <label>Full Name</label>
+        <input type="text" id="f-name" placeholder="e.g. Sarah Johnson">
+      </div>
+      <div class="input-group">
+        <label>Job Title</label>
+        <input type="text" id="f-title" placeholder="e.g. VP of Operations">
+      </div>
+      <div class="input-group">
+        <label>Company</label>
+        <input type="text" id="f-company" placeholder="e.g. Ford Motor Company">
+      </div>
+      <div class="input-group">
+        <label>Industry <span style="color:#aaa;font-size:11px;">(optional)</span></label>
+        <input type="text" id="f-industry" placeholder="e.g. Automotive">
+      </div>
+      <div class="input-group">
+        <label>Location</label>
+        <input type="text" id="f-location" placeholder="e.g. Detroit, USA">
+      </div>
+      <div class="input-group">
+        <label>Employee Count <span style="color:#aaa;font-size:11px;">(optional)</span></label>
+        <input type="text" id="f-employees" placeholder="e.g. 5000">
+      </div>
+    </div>
+
+    <div id="company-form" style="display:none;">
+      <div class="section-label">Company Name</div>
+      <div class="input-group">
+        <label>Company</label>
+        <input type="text" id="c-company" placeholder="e.g. Tesla, JPMorgan, Walmart...">
+      </div>
+      <p style="font-size:12px;color:#8892a4;line-height:1.5;margin-bottom:16px;">
+        The agent will automatically enrich industry, size &amp; location before scoring.
+      </p>
+    </div>
+
+    <button class="evaluate-btn" id="eval-btn" onclick="runEvaluation()">
+      <span>⚡</span> Evaluate Lead
+    </button>
+
+    <div class="example-btns">
+      <div class="section-label" style="margin-top:20px;">Quick Examples</div>
+      <button class="example-btn" onclick="loadExample('tesla')">🚗 Tesla (company only)</button>
+      <button class="example-btn" onclick="loadExample('vp-retail')">🛒 VP at Walmart (full data)</button>
+      <button class="example-btn" onclick="loadExample('small-startup')">❌ Small startup (not a fit)</button>
+      <button class="example-btn" onclick="loadExample('jp-bank')">🏦 JPMorgan Chase (company only)</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div id="result-area">
+      <div class="placeholder">
+        <div style="font-size:48px;opacity:0.3;">🎯</div>
+        <div style="font-size:16px;font-weight:600;color:#555;">Ready to evaluate leads</div>
+        <div style="font-size:13px;color:#aab;max-width:260px;">Enter lead information or pick an example, then click Evaluate.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentMode = 'full';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btn-full').classList.toggle('active', mode === 'full');
+  document.getElementById('btn-company').classList.toggle('active', mode === 'company');
+  document.getElementById('full-form').style.display = mode === 'full' ? 'block' : 'none';
+  document.getElementById('company-form').style.display = mode === 'company' ? 'block' : 'none';
+}
+
+function loadExample(key) {
+  const examples = {
+    tesla: { mode: 'company', company: 'Tesla' },
+    'vp-retail': { mode: 'full', name: 'Jennifer Walsh', title: 'VP of Supply Chain', company: 'Walmart', industry: 'Retail & FMCG', location: 'Bentonville, Arkansas, USA', employees: '2300000' },
+    'small-startup': { mode: 'full', name: 'Alex Chen', title: 'CEO', company: 'TechSpark', industry: 'Software', location: 'San Francisco, USA', employees: '15' },
+    'jp-bank': { mode: 'company', company: 'JPMorgan Chase' }
+  };
+  const ex = examples[key];
+  setMode(ex.mode);
+  if (ex.mode === 'company') {
+    document.getElementById('c-company').value = ex.company;
+  } else {
+    document.getElementById('f-name').value = ex.name || '';
+    document.getElementById('f-title').value = ex.title || '';
+    document.getElementById('f-company').value = ex.company || '';
+    document.getElementById('f-industry').value = ex.industry || '';
+    document.getElementById('f-location').value = ex.location || '';
+    document.getElementById('f-employees').value = ex.employees || '';
+  }
+}
+
+const SYSTEM_PROMPT = `You are an AI Sales & RevOps Assistant that evaluates and routes leads based on Ideal Customer Profile (ICP) fit.
+
+## ICP Criteria
+A "High Fit" lead MUST meet ALL:
+1. Industry must match one of:
+   - Automotive → Justin Collop
+   - Airlines → Sydney Slossen
+   - Manufacturing → Justin Collop
+   - Oil & Gas / Energy & Utilities → Dan Firker
+   - Life Sciences → Justin Collop
+   - Tech & Communications → Wyatt Hall
+   - Retail & FMCG → Sydney Slossen
+   - Business Services → Sydney Slossen
+   - BFSI (Banking, Financial Services, Insurance) → Jenna Jardine
+2. Buying Authority: Must be C-Suite, VP, Director, or Head-level
+3. Location: United States ONLY
+4. Company Size: Employee count > 1000
+
+## Scoring
+- High Fit: ALL 4 criteria met
+- Medium Fit: 2-3 criteria met, OR strong industry match but missing 1 key factor
+- Not a Fit: 0-1 criteria met, OR industry not listed
+
+## Data Enrichment
+If fields are missing, use your training knowledge to fill them in. Mark enriched fields clearly.
+
+## Output Format (STRICT JSON — no preamble, no markdown fences)
+{
+  "fitScore": "High Fit" | "Medium Fit" | "Not a Fit",
+  "assignedRep": "Rep Name" | "Not Applicable",
+  "enriched": {
+    "industry": "...",
+    "employeeCount": "...",
+    "location": "...",
+    "confidence": "High" | "Medium" | "Low",
+    "wasEnriched": true | false
+  },
+  "criteria": {
+    "industryMatch": { "result": "pass" | "fail" | "unknown", "detail": "..." },
+    "buyingAuthority": { "result": "pass" | "fail" | "unknown", "detail": "..." },
+    "locationMatch": { "result": "pass" | "fail" | "unknown", "detail": "..." },
+    "companySizeMatch": { "result": "pass" | "fail" | "unknown", "detail": "..." }
+  },
+  "reasoning": "2-3 sentence explanation.",
+  "recommendation": "Prioritize immediate outreach" | "Add to nurture or evaluate further" | "Do not prioritize / disqualify"
+}`;
+
+async function runEvaluation() {
+  let leadInfo = '';
+  if (currentMode === 'full') {
+    const name = document.getElementById('f-name').value.trim();
+    const title = document.getElementById('f-title').value.trim();
+    const company = document.getElementById('f-company').value.trim();
+    const industry = document.getElementById('f-industry').value.trim();
+    const location = document.getElementById('f-location').value.trim();
+    const employees = document.getElementById('f-employees').value.trim();
+    if (!company && !name) { alert('Please enter at least a company name or contact name.'); return; }
+    leadInfo = 'Please evaluate this lead:\n';
+    if (name) leadInfo += `- Name: ${name}\n`;
+    if (title) leadInfo += `- Job Title: ${title}\n`;
+    if (company) leadInfo += `- Company: ${company}\n`;
+    if (industry) leadInfo += `- Industry: ${industry}\n`;
+    if (location) leadInfo += `- Location: ${location}\n`;
+    if (employees) leadInfo += `- Employee Count: ${employees}\n`;
+  } else {
+    const company = document.getElementById('c-company').value.trim();
+    if (!company) { alert('Please enter a company name.'); return; }
+    leadInfo = `Please evaluate this lead:\n- Company: ${company}\n(Only company name provided — please enrich and evaluate.)`;
+  }
+
+  document.getElementById('eval-btn').disabled = true;
+  document.getElementById('result-area').innerHTML = `
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <div class="loading-text">Enriching &amp; evaluating lead...</div>
+    </div>`;
+
+  try {
+    const resp = await fetch('/api/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: leadInfo }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    const textBlock = data.content.find(b => b.type === 'text');
+    const raw = textBlock ? textBlock.text.replace(/```json|```/g, '').trim() : '';
+    renderResult(JSON.parse(raw));
+  } catch (err) {
+    document.getElementById('result-area').innerHTML = `
+      <div class="error-box"><strong>Evaluation failed.</strong><br>${err.message || 'Please try again.'}</div>`;
+  } finally {
+    document.getElementById('eval-btn').disabled = false;
+  }
+}
+
+function renderResult(r) {
+  const scoreClass = r.fitScore === 'High Fit' ? 'high' : r.fitScore === 'Medium Fit' ? 'medium' : 'not-fit';
+  const scoreEmoji = r.fitScore === 'High Fit' ? '✅' : r.fitScore === 'Medium Fit' ? '⚠️' : '❌';
+  const recEmoji = r.fitScore === 'High Fit' ? '🚀' : r.fitScore === 'Medium Fit' ? '🔁' : '🚫';
+
+  const criteriaItems = [
+    { key: 'industryMatch', label: 'Industry Match' },
+    { key: 'buyingAuthority', label: 'Buying Authority' },
+    { key: 'locationMatch', label: 'Location (USA)' },
+    { key: 'companySizeMatch', label: 'Company Size (>1000)' }
+  ].map(c => {
+    const item = r.criteria[c.key];
