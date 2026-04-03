@@ -1,0 +1,8 @@
+{
+  "name": "lead-eval-agent",
+  "version": "1.0.0",
+  "description": "AI Sales Lead Evaluation Agent - Vercel Edition",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
